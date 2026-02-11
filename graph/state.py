@@ -8,4 +8,4 @@ class GraphState(TypedDict, total=False):
     document_relevancy: bool
     research_trace: Dict[str, Any]
     generation: str
-    retries: int
+    
