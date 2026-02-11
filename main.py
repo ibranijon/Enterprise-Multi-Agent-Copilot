@@ -1,8 +1,8 @@
 from graph.graph_flow import app
+from graph.utils.tracing import new_run_id
 
 
 def format_final_output(state: dict) -> str:
-    # Invalid case: print ONLY one sentence
     if "final_output" in state and state["final_output"]:
         return state["final_output"]
 
@@ -40,12 +40,24 @@ def format_final_output(state: dict) -> str:
 
 
 def main():
-    user_input = (
-        "Tony Soprano with Spiderman are delevering pizza accross town"
+    user_input = "Based on published evidence, what post-discharge interventions are most effective at reducing heart failure readmissions and what concrete next steps should a hospital take? Send this to Recipient: Director of Care Transitions transition@org.com"
+
+    final_state = app.invoke(
+        {
+            "question": user_input,
+            "run_id": new_run_id(),
+            "trace": [],
+        }
     )
 
-    final_state = app.invoke({"question": user_input})
     print(format_final_output(final_state))
+
+    # Optional: quick trace summary in console
+    # (full trace is also written to logs/run.jsonl if you used the tracing helper I gave you)
+    if final_state.get("trace"):
+        print("\n--- TRACE SUMMARY ---")
+        for e in final_state["trace"]:
+            print(f"{e['ts']} | {e['node']} | {e['event']} | {e.get('data', {})}")
 
 
 if __name__ == "__main__":

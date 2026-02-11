@@ -1,6 +1,10 @@
 #API key
-
 .env
+
+#Logs
+/logs
+
+
 
 #Byte-compiled / optimized / DLL files
 pycache/

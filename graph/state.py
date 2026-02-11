@@ -24,3 +24,6 @@ class GraphState(TypedDict, total=False):
     sources: str
 
     verifier_issues: List[str]
+
+    run_id: str
+    trace: List[Dict[str, Any]]
