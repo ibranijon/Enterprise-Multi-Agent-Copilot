@@ -14,5 +14,6 @@ dependencies = [
     "langchain-ollama>=1.0.1",
     "langgraph>=1.0.8",
     "pdfplumber>=0.11.9",
+    "pytest>=9.0.2",
     "tiktoken>=0.12.0",
 ]
