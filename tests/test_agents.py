@@ -1,18 +1,17 @@
+# tests/test_agents.py
 from graph.agents.AGENT_Planner import planner_agent
 
 
-def test_planner_agent_returns_bullets():
-    question = "Explain risks of AI in healthcare and propose mitigation steps."
+def test_planner_agent_returns_list_of_tasks():
+    question = "Explain heartfailures and how to mitigate them."
 
-    output = planner_agent.invoke({"question": question})
+    plan = planner_agent.invoke({"question": question})
 
-    assert output is not None, "Planner returned None"
-    assert isinstance(output, str), "Planner output must be a string"
+    assert plan is not None, "Planner returned None"
+    assert isinstance(plan, list), f"Planner must return a list, got {type(plan)}"
+    assert 1 <= len(plan) <= 5, f"Planner must return 1–5 tasks, got {len(plan)}"
 
-    lines = [line.strip() for line in output.splitlines() if line.strip()]
-
-    assert len(lines) > 0, "Planner returned empty output"
-    assert len(lines) <= 5, f"Planner returned more than 5 bullets: {len(lines)}"
-
-    for line in lines:
-        assert line.startswith("- "), f"Line is not a bullet point: {line}"
+    for item in plan:
+        assert isinstance(item, str), f"Each task must be a string, got {type(item)}"
+        assert item.strip(), "Task string cannot be empty"
+        assert not item.strip().startswith("- "), f"Tasks should not be bullet-formatted: {item}"

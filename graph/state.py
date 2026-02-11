@@ -3,8 +3,8 @@ from langchain_core.documents import Document
 
 class GraphState(TypedDict, total=False):
     question: str
-    plan: str
-    generation: str
-    document_relevancy: bool
+    plan: List[str]
     documents: List[Document]
+    document_relevancy: bool
+    generation: str
     retries: int

@@ -1,52 +1,48 @@
-from typing import Any, Dict, List
+from typing import List
 from langchain_ollama import ChatOllama
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableLambda, RunnableSequence
+from langchain_core.runnables import RunnableLambda
 
 llm = ChatOllama(model="llama3.1:latest", temperature=0)
 
-PLANNER_SYSTEM = """You are the Planner Agent for a healthcare enterprise copilot.
+PLANNER_SYSTEM = """
+You are the Planner Agent for a healthcare enterprise copilot.
+Your task:
+Decompose the user's request into ONLY the minimum number of retrieval tasks required
+to answer the request accurately.
 
-Goal:
-Decompose the user's task into a short list of retrieval tasks that the Research step will execute.
+- Output each task on its own line.
+- Output ONLY plain text lines.
+- DO NOT use numbering (e.g. "1.", "2)", "Step 1").
+- DO NOT use bullet symbols ("-", "*", "•").
+- DO NOT add headings, explanations, or extra text.
+- Each line must begin directly with the task text.
+- Generate ONLY the tasks that are strictly necessary.
+- Minimum 1 task, maximum 5 tasks.
+- Each task must be a concrete, actionable retrieval instruction suitable for searching documents.
 
-Rules:
-- Output ONLY bullet points, each starting with "- ".
-- Maximum 5 bullets, minimum 1 bullet.
-- Each bullet must be a concrete search/retrieval instruction (what to look for in documents).
-- Do NOT invent facts.
-- Do NOT ask questions unless absolutely necessary.
-- Assume the task is healthcare-related and ALWAYS requires retrieval/evidence.
-- Bullets should be phrased so they can be used as search queries (include key terms from the user request).
+If you violate any formatting rule, the output is incorrect.
 """
 
 planner_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", PLANNER_SYSTEM),
-        ("human", "User task:\n{question}\n\nReturn the retrieval plan as bullet points:"),
+        ("human", "User task:\n{question}\n\nReturn the retrieval tasks:"),
     ]
 )
 
-def _normalize_plan(text: str) -> str:
+
+def _to_list(text: str) -> List[str]:
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    tasks = lines[:5]
 
-    bullets: List[str] = []
-    for ln in lines:
-        if ln.startswith(("-", "•", "*")):
-            item = ln.lstrip("-•* ").strip()
-        else:
-            item = ln.strip()
+    if not tasks:
+        tasks = [
+            "Retrieve healthcare documents relevant to the user's request, including definitions, risks, and mitigation strategies."
+        ]
 
-        if item:
-            bullets.append("- " + item)
+    return tasks
 
-    # enforce 1..5 bullets
-    bullets = bullets[:5]
-    if not bullets:
-        bullets = ["- Retrieve evidence directly relevant to the user's task (definitions, requirements, constraints, and any cited metrics)."]
 
-    return "\n".join(bullets)
-
-planner_agent: RunnableSequence = (
-    planner_prompt | llm | StrOutputParser() | RunnableLambda(_normalize_plan))
+planner_agent = planner_prompt | llm | StrOutputParser() | RunnableLambda(_to_list)
