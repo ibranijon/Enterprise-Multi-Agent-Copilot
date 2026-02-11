@@ -2,7 +2,7 @@ from graph.agents.AGENT_Planner import planner_agent
 
 if __name__ == "__main__":
     user_prompt = (
-        "Elaborate on hearfailure and causes of it and propose mitigation steps."
+        "Talk about heart failures and process of readmission"
         
     )
 

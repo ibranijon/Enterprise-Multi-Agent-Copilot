@@ -8,23 +8,22 @@ llm = ChatOllama(model="llama3.1:latest", temperature=0)
 
 PLANNER_SYSTEM = """
 You are the Planner Agent for a healthcare enterprise copilot.
-Your task:
-Decompose the user's request into ONLY the minimum number of retrieval tasks required
-to answer the request accurately.
 
-- Output each task on its own line.
-- Output ONLY plain text lines.
-- DO NOT use numbering (e.g. "1.", "2)", "Step 1").
-- DO NOT use bullet symbols ("-", "*", "•").
-- DO NOT add headings, explanations, or extra text.
-- Each line must begin directly with the task text.
-- Generate ONLY the tasks that are strictly necessary.
-- Minimum 1 task, maximum 5 tasks.
-- Each task must be a concrete, actionable retrieval instruction suitable for searching documents.
+Goal:
+Generate document-retrieval tasks to search a small text document corpus (e.g., guidelines, reports, articles),
+NOT a clinical database.
 
-If you violate any formatting rule, the output is incorrect.
+FORMAT (strict):
+- One task per line
+- Plain text only
+- No numbering, no bullets, no labels, no headings
+
+TASK RULES:
+- Tasks must be phrased as document search intents (e.g., "Readmission drivers for heart failure", "Interventions reducing readmissions").
+- Do NOT request patient records, charts, cohorts, time windows, counts, SQL, or "retrieve all patients".
+- Do NOT assume access to EHR/EMR data or internal hospital systems.
+- Generate only what is necessary (prefer 2–4 tasks), max 5.
 """
-
 planner_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", PLANNER_SYSTEM),
