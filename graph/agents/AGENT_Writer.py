@@ -32,7 +32,7 @@ Produce a DRAFT deliverable with:
 
 Rules:
 - Use only the subset of chunks needed.
-- Do not invent facts. If evidence is insufficient, keep the draft minimal and avoid unsupported claims.
+- Do not invent facts. If evidence is insufficient, avoid unsupported claims.
 - Owner must be a role/team/accountable function (not an email).
 - Do not include confidence. A separate Verifier Agent adds confidence.
 - Return ONLY valid JSON matching the schema.
@@ -54,14 +54,33 @@ class WriterOutput(BaseModel):
     citations_used: List[int]
 
 
-def _extract_email(text: str) -> Optional[str]:
-    import re
-    m = re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", text or "")
-    return m.group(0) if m else None
-
-
-def _default_due_date(days: int = 7) -> str:
+def _default_due_date(days: int = 14) -> str:
     return (date.today() + timedelta(days=days)).isoformat()
+
+
+def _is_past_or_invalid(d: str) -> bool:
+    try:
+        return date.fromisoformat(d) < date.today()
+    except Exception:
+        return True
+
+
+def _extract_recipient_email(question: str) -> Optional[str]:
+    """
+    Prefer extracting email that appears after 'Recipient:' (your prompt format),
+    otherwise fall back to any email in the text.
+    """
+    import re
+
+    if not question:
+        return None
+
+    m = re.search(r"Recipient\s*:\s*.*?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})", question, re.IGNORECASE)
+    if m:
+        return m.group(1)
+
+    m2 = re.search(r"([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})", question)
+    return m2.group(1) if m2 else None
 
 
 def _format_docs_for_prompt(docs: List[Document]) -> str:
@@ -101,17 +120,23 @@ def write_draft(question: str, documents: List[Document]) -> Dict[str, Any]:
     context = _format_docs_for_prompt(documents)
     draft: Dict[str, Any] = chain.invoke({"question": question, "context": context})
 
-    user_email = _extract_email(question) or "[EMAIL]"
-    draft["email_to"] = user_email
+    # Email recipient: use "Recipient:" email if present, else placeholder
+    recipient_email = _extract_recipient_email(question)
+    draft["email_to"] = recipient_email or "[EMAIL]"
 
+    # Normalize actions: enforce owner role/team and valid due dates (never in the past)
     actions = draft.get("actions", []) or []
     for a in actions:
         if not a.get("owner"):
             a["owner"] = "Care Transitions Team"
-        if not a.get("due_date"):
-            a["due_date"] = _default_due_date(7)
-    draft["actions"] = actions
 
+        if not a.get("due_date") or _is_past_or_invalid(a["due_date"]):
+            a["due_date"] = _default_due_date(14)
+
+    # Ensure 2-4 actions (keep simple)
+    draft["actions"] = actions[:4]
+
+    # Ensure citations_used exists
     if "citations_used" not in draft or draft["citations_used"] is None:
         draft["citations_used"] = []
 
