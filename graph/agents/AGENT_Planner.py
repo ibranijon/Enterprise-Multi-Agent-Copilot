@@ -1,10 +1,13 @@
+from dotenv import load_dotenv
+
 from typing import List
-from langchain_ollama import ChatOllama
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
 
-llm = ChatOllama(model="llama3.1:latest", temperature=0)
+load_dotenv()
+from langchain_openai import ChatOpenAI
+llm = ChatOpenAI(model="gpt-4o-mini",temperature=0)
 
 PLANNER_SYSTEM = """
 You are the Planner Agent for a healthcare enterprise copilot.
@@ -24,6 +27,8 @@ TASK RULES:
 - Do NOT assume access to EHR/EMR data or internal hospital systems.
 - Generate only what is necessary (prefer 2–4 tasks), max 5.
 """
+
+
 planner_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", PLANNER_SYSTEM),

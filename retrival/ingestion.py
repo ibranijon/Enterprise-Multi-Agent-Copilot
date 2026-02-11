@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dotenv import load_dotenv
 
 import hashlib
 import json
@@ -8,13 +9,17 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
-
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_community.document_loaders import PyMuPDFLoader
-from langchain_ollama import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+
+
+
+load_dotenv()
+from langchain_openai import OpenAIEmbeddings
+embedder = OpenAIEmbeddings(model="text-embedding-3-small")
 
 
 # Configuration
@@ -27,7 +32,7 @@ class IngestionConfig:
     dataset_dir: Path = Path("./data")
     persist_directory: Path = Path("./retrival/chroma")
     collection_name: str = "rag-chroma"
-    embedding_model: str = "nomic-embed-text:latest"
+    embedding_model: str = "text-embedding-3-small"
 
     # Chunking (approximate tokens; enforced by a hard char cap as well)
     chunk_size_tokens: int = 1800
@@ -277,8 +282,8 @@ def ingest(cfg: IngestionConfig = IngestionConfig()) -> dict:
         cfg.manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         return manifest
 
-    # 3) Embed + store in Chroma
-    embeddings = OllamaEmbeddings(model=cfg.embedding_model)
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+
     vectorstore = Chroma.from_documents(
         documents=splits,
         ids=ids,
