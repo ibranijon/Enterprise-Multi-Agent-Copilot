@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-
 from dotenv import load_dotenv
 from typing import Any, Dict, List, Optional
-from dataclasses import dataclass
 from datetime import date, timedelta
 
 from langchain_core.documents import Document
@@ -12,57 +10,47 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
 load_dotenv()
+
 from langchain_openai import ChatOpenAI
 
-
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 
 WRITER_SYSTEM = """
 You are the Writer Agent for a healthcare enterprise copilot.
 
-You receive:
-- The user's request
-- A set of retrieved evidence chunks (documents)
+Input:
+- User request
+- Retrieved evidence chunks (documents)
 
-Your job:
-1) Write an Executive Summary (MAX 150 words).
-2) Write a client-ready email (professional, approachable).
+Output:
+Produce a DRAFT deliverable with:
+1) Executive Summary (MAX 150 words)
+2) Client-ready Email fields (email_to, email_subject, email_body)
+3) Action List (2-4 items) with (task, owner, due_date) ONLY
+4) citations_used: list of 1-based indices of evidence chunks you actually used
 
-Critical rules:
-- Use ONLY the minimum subset of chunks needed to answer well.
-- It is OK to IGNORE chunks that are not needed.
-- Do NOT try to fit all chunks into the response.
-- Do NOT add medical advice beyond the evidence. No unsupported claims.
-- If evidence is insufficient, say so clearly.
-
-Citations:
-- You MUST include a list of citation indices you actually used (1-based indices into the provided documents list).
-- Only cite what you used. Do NOT cite unused chunks.
-
-Action List:
-- Create 2-4 actionable items.
-- Owner: if user provides an email in the request, use it; otherwise use "[EMAIL]".
-- Due date: if user provides it, use it; otherwise choose a realistic due date soon.
-- Confidence: "high" | "medium" | "low" based on evidence coverage.
-
-Output format:
-Return ONLY valid JSON matching the schema.
+Rules:
+- Use only the subset of chunks needed.
+- Do not invent facts. If evidence is insufficient, keep the draft minimal and avoid unsupported claims.
+- Owner must be a role/team/accountable function (not an email).
+- Do not include confidence. A separate Verifier Agent adds confidence.
+- Return ONLY valid JSON matching the schema.
 """
 
 
-class ActionItem(BaseModel):
+class ActionItemDraft(BaseModel):
     task: str = Field(..., min_length=3)
     owner: str = Field(..., min_length=3)
     due_date: str = Field(..., description="YYYY-MM-DD")
-    confidence: str = Field(..., description="high|medium|low")
 
 
-class WriterModelOutput(BaseModel):
+class WriterOutput(BaseModel):
     executive_summary: str
-    email_subject: str
     email_to: str
+    email_subject: str
     email_body: str
-    actions: List[ActionItem]
+    actions: List[ActionItemDraft]
     citations_used: List[int]
 
 
@@ -70,6 +58,10 @@ def _extract_email(text: str) -> Optional[str]:
     import re
     m = re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", text or "")
     return m.group(0) if m else None
+
+
+def _default_due_date(days: int = 7) -> str:
+    return (date.today() + timedelta(days=days)).isoformat()
 
 
 def _format_docs_for_prompt(docs: List[Document]) -> str:
@@ -86,100 +78,41 @@ def _format_docs_for_prompt(docs: List[Document]) -> str:
     return "\n\n".join(parts).strip()
 
 
-def _default_due_date() -> str:
-    # realistic near-term due date
-    return (date.today() + timedelta(days=7)).isoformat()
-
-
-def build_writer_agent(model_name: str = "gpt-4o-mini"):
-    llm = ChatOpenAI(model=model_name,temperature=0)
-
-    parser = JsonOutputParser(pydantic_object=WriterModelOutput)
+def build_writer_agent():
+    parser = JsonOutputParser(pydantic_object=WriterOutput)
 
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", WRITER_SYSTEM),
-            (
-                "human",
-                "USER REQUEST:\n{question}\n\nEVIDENCE CHUNKS:\n{context}\n\n{format_instructions}",
-            ),
+            ("human", "USER REQUEST:\n{question}\n\nEVIDENCE CHUNKS:\n{context}\n\n{format_instructions}"),
         ]
     ).partial(format_instructions=parser.get_format_instructions())
 
-    chain = prompt | llm | parser
-    return chain
+    return prompt | llm | parser
 
 
-def writer_agent(question: str, documents: List[Document], model_name: str = "gpt-4o-mini") -> Dict[str, Any]:
-    # Failure behavior: insufficient evidence
+def write_draft(question: str, documents: List[Document]) -> Dict[str, Any]:
     if not documents:
-        to_email = _extract_email(question) or "[EMAIL]"
-        due = _default_due_date()
         return {
-            "executive_summary": "Insufficient evidence in the provided sources to answer the request.",
-            "email": f"To: {to_email}\nSubject: Heart failure readmissions – insufficient evidence\n\n"
-                     "Hi,\n\nI reviewed the available sources, but they do not contain enough relevant evidence to answer this request reliably.\n\n"
-                     "Best regards,",
-            "actions": [
-                {"task": "Provide additional documents or guidelines specific to the question.", "owner": to_email, "due_date": due, "confidence": "low"}
-            ],
-            "sources": "",
+            "invalid": "Invalid: I cannot answer your question because of insufficient data in the provided sources."
         }
 
-    chain = build_writer_agent(model_name=model_name)
-
+    chain = build_writer_agent()
     context = _format_docs_for_prompt(documents)
-    raw: Dict[str, Any] = chain.invoke({"question": question, "context": context})
+    draft: Dict[str, Any] = chain.invoke({"question": question, "context": context})
 
-    # Post-process: enforce email_to placeholder rule
-    user_email = _extract_email(question)
-    email_to = raw.get("email_to") or user_email or "[EMAIL]"
-    if user_email:
-        email_to = user_email
+    user_email = _extract_email(question) or "[EMAIL]"
+    draft["email_to"] = user_email
 
-    # Ensure due dates exist (fallback if model forgets)
-    actions = raw.get("actions", [])
+    actions = draft.get("actions", []) or []
     for a in actions:
         if not a.get("owner"):
-            a["owner"] = email_to
+            a["owner"] = "Care Transitions Team"
         if not a.get("due_date"):
-            a["due_date"] = _default_due_date()
+            a["due_date"] = _default_due_date(7)
+    draft["actions"] = actions
 
-    # Build sources section using ONLY citations_used
-    sources_block = format_sources_block_from_metadata(documents, raw.get("citations_used", []))
+    if "citations_used" not in draft or draft["citations_used"] is None:
+        draft["citations_used"] = []
 
-    # Final email string (client-ready)
-    email = f"To: {email_to}\nSubject: {raw.get('email_subject','Update')}\n\n{raw.get('email_body','').strip()}"
-
-    return {
-        "executive_summary": raw.get("executive_summary", "").strip(),
-        "email": email,
-        "actions": actions,
-        "sources": sources_block,
-    }
-
-
-def format_sources_block_from_metadata(docs: List[Document], cited_nums: List[int]) -> str:
-    # cited_nums are 1-based indices
-    if not cited_nums:
-        return ""
-
-    seen = set()
-    lines = ["Sources"]
-    for n in cited_nums:
-        if n in seen:
-            continue
-        seen.add(n)
-
-        idx = n - 1
-        if idx < 0 or idx >= len(docs):
-            continue
-
-        md = docs[idx].metadata or {}
-        src = md.get("source", "unknown")
-        page = md.get("page_start", md.get("page"))
-        chunk = md.get("chunk_id", "?")
-
-        lines.append(f"- {src} (page {page}, chunk {chunk})")
-
-    return "\n".join(lines)
+    return draft
