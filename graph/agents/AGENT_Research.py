@@ -26,6 +26,8 @@ def research_agent(queries: List[str]) -> Dict[str, Any]:
     - Runs strict relevance grading on each chunk against the SAME query
     - Returns only chunks graded 'yes'
     """
+
+    
     if not queries:
         return {"documents": [], "trace": {"queries": [], "kept": 0, "dropped": 0, "rows": []}}
 
