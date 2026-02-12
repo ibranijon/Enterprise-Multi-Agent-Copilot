@@ -22,7 +22,7 @@ data/
 .chroma/
 ingestion_manifest.json
 chroma/
-retrieval/chroma/
+retrival/chroma/
 **/chroma/
 
 #Distribution / packaging
