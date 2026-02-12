@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
 from assets.UI import apply_page_config, apply_css
 from assets.Components import (
     render_header,
+    render_intro,
     render_structured_output,
     render_invalid,
     render_runtime_error,
@@ -57,6 +58,9 @@ def main() -> None:
     if "messages" not in st.session_state:
         st.session_state["messages"] = []
 
+    if len(st.session_state["messages"]) == 0:
+        render_intro()
+
     for msg in st.session_state["messages"]:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
@@ -74,7 +78,7 @@ def main() -> None:
                     out_state = langgraph_app.invoke(_build_input_state(user_prompt))
                 except Exception as ex:
                     render_runtime_error(
-                        "The run crashed (exception). This is different from an INVALID run (which is signaled via `final_output`).",
+                        "The run crashed (exception). This is different from an INVALID run (signaled via `final_output`).",
                         details="".join(
                             traceback.format_exception(type(ex), ex, ex.__traceback__)
                         ),
@@ -86,7 +90,9 @@ def main() -> None:
             else:
                 assistant_md = render_structured_output(out_state)
 
-        st.session_state["messages"].append({"role": "assistant", "content": assistant_md})
+        st.session_state["messages"].append(
+            {"role": "assistant", "content": assistant_md}
+        )
         st.rerun()
 
 
