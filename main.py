@@ -40,7 +40,7 @@ def format_final_output(state: dict) -> str:
 
 
 def main():
-    user_input = "Based on published evidence, what post-discharge interventions are most effective at reducing heart failure readmissions and what concrete next steps should a hospital take? Send this to Recipient: Director of Care Transitions transition@org.com"
+    user_input = "Talk about AI impact on healthcare overall and in heart diseases detection. Send this to Recipient: Chief Medical Officer cmo@org.com"
 
     final_state = app.invoke(
         {
