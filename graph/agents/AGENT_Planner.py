@@ -6,6 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
 
 load_dotenv()
+
 from langchain_openai import ChatOpenAI
 llm = ChatOpenAI(model="gpt-4o-mini",temperature=0)
 

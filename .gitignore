@@ -21,6 +21,9 @@ C extensions
 data/
 .chroma/
 ingestion_manifest.json
+chroma/
+retrieval/chroma/
+**/chroma/
 
 #Distribution / packaging
 .Python
