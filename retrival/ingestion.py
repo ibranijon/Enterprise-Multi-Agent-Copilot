@@ -1,4 +1,4 @@
-from __future__ import annotations
+
 from dotenv import load_dotenv
 
 import hashlib
@@ -15,15 +15,12 @@ from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
-
-
 load_dotenv()
 from langchain_openai import OpenAIEmbeddings
-embedder = OpenAIEmbeddings(model="text-embedding-3-small")
+
 
 
 # Configuration
-
 
 @dataclass(frozen=True)
 class IngestionConfig:

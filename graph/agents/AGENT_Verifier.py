@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dotenv import load_dotenv
 from typing import Any, Dict, List
 

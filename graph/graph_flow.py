@@ -10,7 +10,7 @@ load_dotenv()
 
 workflow = StateGraph(GraphState)
 
-s
+
 workflow.add_node(PLAN, planner_node)
 workflow.add_node(RESEARCH, research_node)
 workflow.add_node(WRITE, writer_node)
