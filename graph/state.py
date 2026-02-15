@@ -8,11 +8,8 @@ class GraphState(TypedDict, total=False):
     documents: List[Document]
     document_relevancy: bool
     research_trace: Dict[str, Any]
-    generation: str
 
     writer_draft: Dict[str, Any]
-
-    final_output: str
 
     executive_summary: str
     email_to: str
@@ -22,8 +19,9 @@ class GraphState(TypedDict, total=False):
     actions: List[Dict[str, Any]]
     citations_used: List[int]
     sources: str
-
     verifier_issues: List[str]
 
+
+    final_output: str
     run_id: str
     trace: List[Dict[str, Any]]
