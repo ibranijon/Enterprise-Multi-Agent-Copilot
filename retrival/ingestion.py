@@ -18,11 +18,9 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 load_dotenv()
 from langchain_openai import OpenAIEmbeddings
 
-
-
-# Configuration
-
 @dataclass(frozen=True)
+
+# Ingestion configuration and parameters for dataset
 class IngestionConfig:
 
 
@@ -31,12 +29,12 @@ class IngestionConfig:
     collection_name: str = "rag-chroma"
     embedding_model: str = "text-embedding-3-small"
 
-    # Chunking (approximate tokens; enforced by a hard char cap as well)
+
     chunk_size_tokens: int = 1800
     chunk_overlap_tokens: int = 100
     max_chunk_chars: int = 2000
 
-    # Header/footer removal (repeated lines across pages)
+   
     header_footer_window_lines: int = 3
     repeat_line_min_len: int = 8
     repeat_line_ratio: float = 0.6
@@ -45,31 +43,24 @@ class IngestionConfig:
 
 
 
-# Utilities
-
-
 def _sha1(text: str) -> str:
     return hashlib.sha1(text.encode("utf-8", errors="ignore")).hexdigest()
 
 
+# Normalize extracted text 
 def _normalize_text(text: str) -> str:
-    # Remove soft hyphen
+
     text = text.replace("\u00ad", "")
 
-    # De-hyphenate common PDF line breaks: "inter-\nnational" -> "international"
     text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)
 
-    # Clean whitespace/newlines
     text = re.sub(r"[ \t]+\n", "\n", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     text = re.sub(r"[ \t]{2,}", " ", text)
     return text.strip()
 
 
-
-# PDF Loading (PyMuPDF first, pdfplumber fallback)
-
-
+# Pageloader with pdfplumber and PyMudf as fallback
 def _load_pdf_pages_pdfplumber(pdf_path: Path) -> List[Document]:
     import pdfplumber
 
@@ -80,7 +71,6 @@ def _load_pdf_pages_pdfplumber(pdf_path: Path) -> List[Document]:
             docs.append(Document(page_content=text, metadata={"page": i}))
     return docs
 
-
 def _load_pdf_pages(pdf_path: Path) -> List[Document]:
    
     try:
@@ -88,7 +78,7 @@ def _load_pdf_pages(pdf_path: Path) -> List[Document]:
     except Exception:
         docs = []
 
-    # If extraction is weak/empty, fallback to pdfplumber
+    
     total_chars = sum(len((d.page_content or "").strip()) for d in docs) if docs else 0
     if not docs or total_chars < 200:
         docs = _load_pdf_pages_pdfplumber(pdf_path)
@@ -96,9 +86,7 @@ def _load_pdf_pages(pdf_path: Path) -> List[Document]:
     return docs
 
 
-# Header/Footer Removal 
-
-
+#Header and footer removal 
 def _collect_repeated_lines(pages: List[str], cfg: IngestionConfig) -> set[str]:
     candidates: List[str] = []
     w = cfg.header_footer_window_lines
@@ -125,6 +113,8 @@ def _strip_repeated_lines(page_text: str, repeated: set[str]) -> str:
     return "\n".join(out)
 
 
+
+# Extract and clean documents from PDFS
 def _prepare_docs(pdf_path: Path, cfg: IngestionConfig) -> List[Document]:
 
     pages = _load_pdf_pages(pdf_path)
@@ -155,9 +145,7 @@ def _prepare_docs(pdf_path: Path, cfg: IngestionConfig) -> List[Document]:
     return cleaned
 
 
-
-# Chunking + Stable IDs for Citations
-
+# Chunk limiter
 
 def _enforce_max_chars(docs: List[Document], max_chars: int) -> List[Document]:
     out: List[Document] = []
@@ -181,6 +169,8 @@ def _enforce_max_chars(docs: List[Document], max_chars: int) -> List[Document]:
     return out
 
 
+
+# Split documents into chunks and asign metadata for citation
 def _split_and_tag(docs: List[Document], cfg: IngestionConfig) -> Tuple[List[Document], List[str]]:
     
     splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
@@ -231,8 +221,8 @@ def _split_and_tag(docs: List[Document], cfg: IngestionConfig) -> Tuple[List[Doc
 
 
 
-# Main Ingestion Pipeline
 
+# Main ingestion function 
 def ingest(cfg: IngestionConfig = IngestionConfig()) -> dict:
     if not cfg.dataset_dir.exists():
         raise FileNotFoundError(f"Dataset folder not found: {cfg.dataset_dir.resolve()}")
@@ -275,6 +265,7 @@ def ingest(cfg: IngestionConfig = IngestionConfig()) -> dict:
         cfg.manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         return manifest
 
+    #Vectorstore dataset
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
     vectorstore = Chroma.from_documents(
@@ -285,9 +276,6 @@ def ingest(cfg: IngestionConfig = IngestionConfig()) -> dict:
         persist_directory=str(cfg.persist_directory),
     )
 
-
-
-    # Persist (some versions auto-persist; this keeps it explicit)
     try:
         vectorstore.persist()
     except Exception:
