@@ -124,15 +124,13 @@ def _strip_repeated_lines(page_text: str, repeated: set[str]) -> str:
         out.append(ln)
     return "\n".join(out)
 
-# Cleaning + Metadata Enrichment
-
 
 def _prepare_docs(pdf_path: Path, cfg: IngestionConfig) -> List[Document]:
-    # Load per-page documents (keeps page metadata for citations)
+
     pages = _load_pdf_pages(pdf_path)
     raw_texts = [p.page_content or "" for p in pages]
 
-    # Remove repeating header/footer lines when we have enough pages to detect patterns
+   
     repeated = _collect_repeated_lines(raw_texts, cfg) if len(raw_texts) >= 3 else set()
 
     cleaned: List[Document] = []
@@ -146,7 +144,6 @@ def _prepare_docs(pdf_path: Path, cfg: IngestionConfig) -> List[Document]:
         meta["source"] = pdf_path.name
         meta["source_path"] = str(pdf_path.as_posix())
 
-        # Ensure page is int when present
         if meta.get("page") is not None:
             try:
                 meta["page"] = int(meta["page"])
@@ -236,7 +233,6 @@ def _split_and_tag(docs: List[Document], cfg: IngestionConfig) -> Tuple[List[Doc
 
 # Main Ingestion Pipeline
 
-
 def ingest(cfg: IngestionConfig = IngestionConfig()) -> dict:
     if not cfg.dataset_dir.exists():
         raise FileNotFoundError(f"Dataset folder not found: {cfg.dataset_dir.resolve()}")
@@ -288,6 +284,8 @@ def ingest(cfg: IngestionConfig = IngestionConfig()) -> dict:
         embedding=embeddings,
         persist_directory=str(cfg.persist_directory),
     )
+
+
 
     # Persist (some versions auto-persist; this keeps it explicit)
     try:
