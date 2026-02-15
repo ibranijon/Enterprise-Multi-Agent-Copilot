@@ -125,11 +125,11 @@ def write_draft(question: str, documents: List[Document]) -> Dict[str, Any]:
     context = _format_docs_for_prompt(documents)
     draft: Dict[str, Any] = chain.invoke({"question": question, "context": context})
 
-    # Email recipient: use "Recipient:" email if present, else placeholder
+    
     recipient_email = _extract_recipient_email(question)
     draft["email_to"] = recipient_email or "[EMAIL]"
 
-    # Normalize actions: enforce owner role/team and valid due dates (never in the past)
+
     actions = draft.get("actions", []) or []
     for a in actions:
         if not a.get("owner"):
@@ -138,10 +138,9 @@ def write_draft(question: str, documents: List[Document]) -> Dict[str, Any]:
         if not a.get("due_date") or _is_past_or_invalid(a["due_date"]):
             a["due_date"] = _default_due_date(14)
 
-    # Ensure 2-4 actions (keep simple)
     draft["actions"] = actions[:4]
 
-    # Ensure citations_used exists
+
     if "citations_used" not in draft or draft["citations_used"] is None:
         draft["citations_used"] = []
 
