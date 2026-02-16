@@ -22,7 +22,7 @@ Its goal is to produce **structured, client-ready outputs** (executive summaries
 - **Vector Store:** ChromaDB
 - **Frameworks:** LangChain, LangGraph
 - **UI:** Streamlit
-- **Evaluation:** Custom evaluation harness + pytest
+- **Evaluation:** Custom evaluation harness
 - **Environment Management:** `uv`
 
 ---
@@ -221,7 +221,6 @@ dependencies = [
     "langchain-openai>=1.1.9",
     "langgraph>=1.0.8",
     "pdfplumber>=0.11.9",
-    "pytest>=9.0.2",
     "python-dotenv>=1.2.1",
     "streamlit>=1.54.0",
     "tiktoken>=0.12.0",
