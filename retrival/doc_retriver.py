@@ -40,30 +40,24 @@ def _count(vs) -> int:
         return 0
 
 
+def _has_pdfs(dataset_dir: Path) -> bool:
+    return dataset_dir.exists() and any(dataset_dir.rglob("*.pdf"))
+
+
 def ensure_vectorstore_ready() -> None:
     vs = _vectorstore()
     if _count(vs) > 0:
         return
 
-    st.warning("Vector store not found on this deployment. Build it now by uploading PDFs or using ./data.")
-
-    uploaded = st.file_uploader("Upload PDFs to build the vector store", type=["pdf"], accept_multiple_files=True)
-
-    pdf_paths = []
-    if uploaded:
-        DATASET_DIR.mkdir(parents=True, exist_ok=True)
-        for f in uploaded:
-            out = DATASET_DIR / f.name
-            out.write_bytes(f.getvalue())
-            pdf_paths.append(out)
-
-    has_local_data = DATASET_DIR.exists() and any(DATASET_DIR.rglob("*.pdf"))
-
-    if not uploaded and not has_local_data:
-        st.info("No PDFs available. Upload PDFs above, or add PDFs under ./data in the repo.")
+    if not _has_pdfs(DATASET_DIR):
+        st.error(
+            "Vector store not found, and no PDFs were found in ./data.\n\n"
+            "To run this app on Streamlit Cloud, include PDFs under ./data "
+            "or build the vector store during deployment."
+        )
         st.stop()
 
-    with st.spinner("Building Chroma vector store..."):
+    with st.spinner("Building Chroma vector store from ./data ..."):
         cfg = IngestionConfig(
             dataset_dir=DATASET_DIR,
             persist_directory=PERSIST_DIR,
@@ -72,11 +66,11 @@ def ensure_vectorstore_ready() -> None:
         )
         ingest(cfg)
 
-    st.success("Vector store built successfully. Reloading...")
+    st.success("Vector store built. Reloading...")
     st.rerun()
 
 
-# Make sure DB exists before exposing retriever
+# Ensure DB exists before exposing retriever
 ensure_vectorstore_ready()
 
 retriever = _vectorstore().as_retriever(search_kwargs={"k": 2})
