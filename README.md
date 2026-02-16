@@ -31,7 +31,7 @@ Its goal is to produce **structured, client-ready outputs** (executive summaries
 
 **The dataset is included in the repository.**
 
-However if you want to run the application with your own dataset, you must create the following directory at the project root:
+However if you want to run the application with your own dataset, you must modify the following folder at the project root:
 
 ```text
 /data
