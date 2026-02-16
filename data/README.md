@@ -53,14 +53,13 @@ When querying the system, prompts should be **analytical, evidence‑seeking, an
 
 > How do frailty and functional status compare in their ability to predict short-term readmission in older heart failure patients? Do a proper summary of the question at hand and draft the answer to the cardiology team at [cardio@gmail.com](mailto:cardio@gmail.com). Furthermore, give an action list to the cardiology team on what to do next.
 
-> Why is left ventricular ejection fraction alone often insufficient for predicting hospital readmissions in heart failure? Do a proper summary of the question at hand and draft the answer to the medical team at [medicaldepartment.com](mailto:medicaldepartment.com). Furthermore, give an action list to the medical team on what to do next.
+> Why is left ventricular ejection fraction alone often insufficient for predicting hospital readmissions in heart failure? Do a proper summary of the question at hand and draft the answer to the Cardiovascular Department at [cardivascualrdepart@gmail.com](mailto:cardivascualrdepart@gmail.com). Furthermore, give an action list to the medical team on what to do next.
 
 This type of prompt clearly specifies:
 
 - The clinical quesiton
 - The department/person who is being addressed to
 - The email of the department/person mentioned
-- To department to who the action list should be made to
 
 ---
 
@@ -236,3 +235,7 @@ dependencies = [
 This project delivers a **robust, transparent, and safety‑constrained healthcare copilot** that translates complex heart‑failure research into structured, actionable outputs—while remaining firmly grounded in evidence and bounded by clear limitations.
 
 ## Streamlit URL
+
+Below you will the StreamLit URL, note that logger files are only accessible through the local deployment
+
+https://enterprise-multi-agent-copilot-rw6qdkmsxu7nooaa7v3fxg.streamlit.app/
