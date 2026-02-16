@@ -2,16 +2,11 @@
 
 ## Overview
 
-This project is a multi-agent, evidence-grounded enterprise copilot designed for healthcare use cases, with a primary focus on **heart failure readmissions, risk factors, and transitional care interventions**.
+This project is a **multi-agent, evidence-grounded enterprise copilot** designed for healthcare use cases, with a primary focus on **heart failure readmissions, risk factors, and transitional care interventions**.
 
-The system leverages:
+The system combines **retrieval‑augmented generation (RAG)** with **multiple specialized LLM agents** coordinated through a **graph‑based workflow**, producing structured, client‑ready outputs that are strictly grounded in retrieved evidence.
 
-- **Retrieval-Augmented Generation (RAG)**
-- **Multiple specialized LLM agents**
-- **A graph-based workflow (LangGraph)**
-- **Strict grounding and verification rules**
-
-Its goal is to produce **structured, client-ready outputs** (executive summaries, emails, and action lists) that are **explicitly grounded in retrieved evidence**, while safely rejecting requests that cannot be supported by the available data.
+The copilot is intended for **research synthesis, clinical decision support discussions, and health systems analysis**. It does **not** provide patient‑specific medical advice.
 
 ---
 
@@ -27,134 +22,148 @@ Its goal is to produce **structured, client-ready outputs** (executive summaries
 
 ---
 
+## Dataset Summary
+
+### General Source Overview
+
+The dataset is a curated collection of **peer‑reviewed clinical research** focused on **heart failure (HF)** and **hospital readmissions**, particularly within **30, 90, and 180 days after discharge**. Sources include randomized controlled trials, cohort studies, systematic reviews, and health‑system evaluations.
+
+Collectively, the documents examine:
+
+- Why heart failure readmissions occur
+- Which clinical, functional, and system‑level factors increase risk
+- Which transitional care, rehabilitation, and medication‑management strategies reduce rehospitalization
+
+The evidence is **population‑level and research‑based**, enabling explanation and comparison of interventions rather than individualized prediction.
+
+### What the Dataset Is Used For
+
+The dataset enables the copilot to:
+
+- Explain **multi‑factorial causes** of HF readmissions
+- Compare **risk factors and predictors**
+- Summarize **evidence‑based interventions** (e.g., transitional care, self‑management, cardiac rehabilitation)
+- Translate research findings into **structured summaries, emails, and action lists**
+
+### Prompt Examples
+
+When querying the system, prompts should be **analytical, evidence‑seeking, and role‑aware**.
+
+**Example of a good prompt:**
+
+> How are heart‑failure readmissions multi‑factorial? Do a proper summary of the question at hand and draft the answer to the cardiology team at [cardio@gmail.com](mailto:cardio@gmail.com). Furthermore, give an action list to the cardiology team on what to do next.
+
+This type of prompt clearly specifies:
+
+- The clinical quesiton
+- The department/person who is being addressed to
+- The email of the department/person said to
+
+---
+
 ## Dataset Requirements
 
-**The dataset is included in the repository.**
+The dataset is included in the repository.
 
-However if you want to run the application with your own dataset, you must modify the following folder at the project root:
+If you want to run the application with your own documents, place **PDF files** at the project root:
 
 ```text
 /data
 ```
 
-Place your **PDF documents** (peer-reviewed papers, reports, guidelines) inside this folder.
-
-These documents are used to build the vector database during ingestion.
+These documents are ingested and indexed during the one‑time ingestion step.
 
 ---
 
-## High-Level Workflow
+## High‑Level Workflow
 
-### 1. Ingestion (One-Time Step)
+### 1. Ingestion (One‑Time Step)
 
 **File:** `ingestion.py`
 
 - Reads PDF documents from `/data`
 - Cleans and chunks text
-- Chunks are embedded using `text-embedding-3-small`
-- Embeddings are stored in **ChromaDB**
+- Generates embeddings using `text-embedding-3-small`
+- Stores embeddings in **ChromaDB**
 
-This step is run **once**, or whenever the dataset changes.
-
----
-
-### 2. Query-Time Multi-Agent Workflow
-
-The runtime workflow is implemented as a **LangGraph state machine**, where each agent is represented by its own node.
-
-#### Step-by-step Flow
-
-1. **Planner Agent**
-   - Takes the user’s query
-   - Decomposes it into **1–5 document-retrieval sub-tasks**
-   - Tasks are phrased strictly as _document search intents_
-
-2. **Research Agent**
-   - Uses `doc_retriever.py` to retrieve **2 chunks per sub-task**
-   - For each retrieved chunk:
-     - Calls `gpt-4o-mini` to validate whether the chunk is **directly relevant**
-     - Irrelevant chunks are dropped
-
-   - Result: a filtered, grounded evidence set
-
-3. **Writer Agent**
-   - Produces a **draft deliverable** consisting of:
-     - Executive Summary (≤150 words)
-     - Client-ready Email
-     - Action List (2–4 items)
-
-   - Uses **only a subset of retrieved chunks**
-   - Outputs `citations_used` (1-based indices)
-
-4. **Verifier Agent**
-   - Validates the Writer’s draft by checking:
-     - Task relevance (did it actually answer the user’s request?)
-     - Grounding (are claims supported by cited evidence?)
-
-   - Adds **confidence levels** to action items
-   - If the request cannot be supported:
-     - Returns a **single-sentence invalid response**
-     - No partial or hallucinated output is allowed
-
-5. **End Output**
-   - Either:
-     - A fully structured, verified response
-     - OR a single invalid sentence indicating insufficient data
+Run this step once, or whenever the dataset changes.
 
 ---
 
-## Graph-Based Architecture
+### 2. Query‑Time Multi‑Agent Workflow
 
-- Each agent has:
-  - Its own **system prompt**
-  - Its own **node**
+The runtime workflow is implemented as a **LangGraph state machine**, where each agent is a dedicated node.
 
-- Nodes are connected via a **graph flow**
-- State is shared and merged across nodes
-- Execution always returns a final state object
+#### Planner Agent
+
+- Decomposes the user query into **1–5 document‑retrieval sub‑tasks**
+- Tasks are phrased strictly as search intents
+
+#### Research Agent
+
+- Retrieves evidence chunks using the document retriever
+- Filters out irrelevant chunks using LLM‑based relevance checks
+
+#### Writer Agent
+
+- Produces a structured draft containing:
+  - Executive Summary
+  - Client‑ready Email
+  - Action List
+
+- Uses only retrieved evidence
+- Outputs explicit citations
+
+#### Verifier Agent
+
+- Ensures task relevance and evidence grounding
+- Rejects unsupported or unsafe requests
+- Returns either a verified response or a single invalid sentence
+
+---
+
+## Graph‑Based Architecture
+
+- Each agent has its own system prompt and node
+- Nodes are connected via a deterministic graph flow
+- State is shared and merged across agents
 
 This design ensures:
 
-- Deterministic control flow
 - Clear separation of responsibilities
+- Transparency and traceability
 - Easy extensibility
 
 ---
 
 ## Logging & Tracing
 
-The project includes a `logger/` directory that captures:
+Agent‑level logs capture:
 
-- Agent-level execution steps
-- Decisions made between nodes
-- Traceability of how outputs were produced
+- Execution steps
+- Routing decisions
+- Evidence usage
 
-Logs enable:
-
-- Debugging
-- Transparency
-- Auditability of agent behavior
+This supports debugging, auditing, and explainability.
 
 ---
 
 ## Guardrails & Safety
 
-Each agent’s **system prompt includes role-specific guardrails**, ensuring that:
+The system enforces strict guardrails:
 
-- No patient-specific predictions are made
-- No unsupported claims are generated
-- No hallucinated citations appear
-- Requests outside the dataset scope are rejected
+- No patient‑specific predictions
+- No personalized treatment plans
+- No hallucinated citations
+- Explicit rejection of unsupported requests
 
-The Verifier Agent enforces these rules at the final stage.
+Final enforcement is handled by the **Verifier Agent**.
 
 ---
 
 ## Evaluation Framework
 
-The project includes a dedicated evaluation setup in the `/eval` folder.
-
-### Contents
+A dedicated evaluation setup is included:
 
 ```text
 /eval
@@ -163,14 +172,8 @@ The project includes a dedicated evaluation setup in the `/eval` folder.
         └── test_prompts.jsonl
 ```
 
-- `test_prompts.jsonl` contains **10 curated test questions**
-  - Mix of valid, invalid, and adversarial prompts
-
-- `run_eval.py`:
-  - Executes the full graph for each prompt
-  - Verifies correctness, grounding, and failure handling
-
-### Run Evaluation
+The evaluation suite runs curated prompts through the full graph to validate correctness, grounding, and failure handling.
+In order to run the evaluation set, run with:
 
 ```bash
 uv run python -m eval.run_eval
@@ -180,31 +183,29 @@ uv run python -m eval.run_eval
 
 ## Streamlit User Interface
 
-A lightweight UI is provided for interactive usage.
-
-**Location:**
+A lightweight UI is provided for interactive use.
 
 ```text
 /app/streamlit_app.py
 ```
 
-### Run the UI
+Run with:
 
 ```bash
 uv run streamlit run app/streamlit_app.py
 ```
 
+---
+
 ## Environment Setup
 
 ### Required Environment Variable
-
-The application requires an OpenAI API key:
 
 ```bash
 OPENAI_API_KEY=your_api_key_here
 ```
 
-This should be set in an `.env` file
+Set this value in an `.env` file at the project root.
 
 ---
 
@@ -226,3 +227,7 @@ dependencies = [
     "tiktoken>=0.12.0",
 ]
 ```
+
+## Summary
+
+This project delivers a **robust, transparent, and safety‑constrained healthcare copilot** that translates complex heart‑failure research into structured, actionable outputs—while remaining firmly grounded in evidence and bounded by clear limitations.

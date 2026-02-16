@@ -14,4 +14,4 @@ retriever = Chroma(
     collection_name=COLLECTION,
     embedding_function=llm,
     persist_directory=PERSIST_DIR,
-).as_retriever(search_kwargs={"k": 2})   # 3 Chunks per query
+).as_retriever(search_kwargs={"k": 2})   # 2 Chunks per query
