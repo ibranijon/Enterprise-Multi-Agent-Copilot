@@ -61,6 +61,9 @@ This type of prompt clearly specifies:
 - The department/person who is being addressed to
 - The email of the department/person mentioned
 
+Note: The agent will create the action list based on which department it deems most suited for the task at hand.
+Confidence displayed at the items in the action list is generated based on how much agents preplexity with the chunks retrived to form the question.
+
 ---
 
 ## Dataset Requirements
