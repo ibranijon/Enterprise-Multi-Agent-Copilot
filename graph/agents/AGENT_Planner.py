@@ -1,3 +1,5 @@
+import os
+import streamlit as st
 from dotenv import load_dotenv
 
 from typing import List
@@ -5,10 +7,20 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
 
-load_dotenv()
+def get_openai_key():
+    load_dotenv()
+    api_key = (
+        os.getenv("OPENAI_API_KEY") or 
+        st.secrets.get("OPENAI_API_KEY") or 
+        os.environ.get("OPENAI_API_KEY")
+    )
+    
+    return api_key
+
+api_key = get_openai_key()
 
 from langchain_openai import ChatOpenAI
-llm = ChatOpenAI(model="gpt-4o-mini",temperature=0)
+llm = ChatOpenAI(model="gpt-4o-mini",temperature=0, api_key=api_key)
 
 PLANNER_SYSTEM = """
 You are the Planner Agent for a healthcare enterprise copilot.

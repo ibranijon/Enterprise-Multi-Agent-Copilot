@@ -1,16 +1,29 @@
+import os
+import streamlit as st
 from dotenv import load_dotenv
-from typing import Any, Dict, List
 
+from typing import Any, Dict, List
 from langchain_core.documents import Document
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
-load_dotenv()
+def get_openai_key():
+    load_dotenv()
+    api_key = (
+        os.getenv("OPENAI_API_KEY") or 
+        st.secrets.get("OPENAI_API_KEY") or 
+        os.environ.get("OPENAI_API_KEY")
+    )
+    
+    return api_key
+
+api_key = get_openai_key()
+
 
 from langchain_openai import ChatOpenAI
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, api_key=api_key)
 
 
 VERIFIER_SYSTEM = """

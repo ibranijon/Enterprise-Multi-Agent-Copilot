@@ -234,3 +234,5 @@ dependencies = [
 ## Summary
 
 This project delivers a **robust, transparent, and safety‑constrained healthcare copilot** that translates complex heart‑failure research into structured, actionable outputs—while remaining firmly grounded in evidence and bounded by clear limitations.
+
+## Streamlit URL
