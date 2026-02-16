@@ -1,5 +1,13 @@
-
+import os
+import streamlit as st
 from dotenv import load_dotenv
+
+load_dotenv()
+
+OPENAI_API_KEY = (
+    os.getenv("OPENAI_API_KEY")
+    or st.secrets.get("OPENAI_API_KEY")
+)
 
 import hashlib
 import json
@@ -15,7 +23,6 @@ from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
-load_dotenv()
 from langchain_openai import OpenAIEmbeddings
 
 @dataclass(frozen=True)
@@ -266,7 +273,7 @@ def ingest(cfg: IngestionConfig = IngestionConfig()) -> dict:
         return manifest
 
     #Vectorstore dataset
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=OPENAI_API_KEY    )
 
     vectorstore = Chroma.from_documents(
         documents=splits,
