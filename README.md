@@ -51,7 +51,9 @@ When querying the system, prompts should be **analytical, evidence‑seeking, an
 
 **Example of a good prompt:**
 
-> How are heart‑failure readmissions multi‑factorial? Do a proper summary of the question at hand and draft the answer to the cardiology team at [cardio@gmail.com](mailto:cardio@gmail.com). Furthermore, give an action list to the cardiology team on what to do next.
+> How do frailty and functional status compare in their ability to predict short-term readmission in older heart failure patients? Do a proper summary of the question at hand and draft the answer to the cardiology team at [cardio@gmail.com](mailto:cardio@gmail.com). Furthermore, give an action list to the cardiology team on what to do next.
+
+> Why is left ventricular ejection fraction alone often insufficient for predicting hospital readmissions in heart failure? Do a proper summary of the question at hand and draft the answer to the medical team at [medicaldepartment.com] (mailto:medicaldepartment.com). Furthermore, give an action list to the cardiology team on what to do next.
 
 This type of prompt clearly specifies:
 
